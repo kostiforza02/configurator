@@ -194,14 +194,16 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,3.4vw,38px);l
     <div class="ok" id="ok" aria-live="polite"></div>
     <div class="row">
       <button class="btn ghost" id="close">Затвори</button>
-      <button class="btn" id="copy">Копирай офертата</button>
+      <button class="btn ghost" id="copy">Копирай офертата</button>
+      <button class="btn" id="send">Изпрати заявката</button>
     </div>
   </div>
 </div>
 
 <script>
 /* Contact shown to visitors. Fill in before sharing the page. */
-const CONTACT = { name: "Константин Рачев", phone: "", email: "" };
+const CONTACT = { name: "Константин Рачев", phone: "0894 675 786", phoneIntl: "+359 894 675 786", email: "ailqkcompany@gmail.com" };
+const FORM_URL = "https://formsubmit.co/ajax/" + CONTACT.email;
 
 const PRICES = {
   bg: { cur: "€", base:[300,30], booking:[100,0], ai:[150,30], remind:[50,0], reviews:[50,0], social:[100,20] },
@@ -220,9 +222,12 @@ const T = {
     note:"Включва хостинг, поддръжка и промени по сайта.", cta:"Поискай тази оферта",
     perMonth:"/мес", included:"включено", tld:".bg", sample:"Примерна визия",
     dTitle:"Твоята оферта", cname:"Твоето име", ccontact:"Телефон или имейл",
-    close:"Затвори", copy:"Копирай офертата", copied:"Офертата е копирана. Изпрати я на Константин.",
+    close:"Затвори", copy:"Копирай офертата", copied:"Офертата е копирана.",
     copyFail:"Копирането не стана. Маркирай текста и го копирай ръчно.",
-    sendTo:(c)=>"Изпрати офертата на " + c.name + (c.phone? ", тел. " + c.phone : "") + (c.email? ", " + c.email : "") + ". Ще ти върнем отговор до 24 часа.",
+    send:"Изпрати заявката", sending:"Изпращане…", sent:"Заявката е изпратена. Ще ти се обадим до 24 часа.",
+    sendFail:(c)=>"Не успяхме да изпратим. Звънни на " + c.phone + " или пиши на " + c.email + ".",
+    need:"Попълни име и телефон или имейл, за да можем да се свържем с теб.",
+    sendTo:(c)=>"Ще ти се обадим до 24 часа. Или се свържи директно: тел. " + c.phone + ", " + c.email + ".",
     sumHead:"Оферта за сайт", sumBiz:"Бизнес", sumNiche:"Ниша", sumMods:"Модули", sumOnce:"Еднократно", sumMonth:"Месечно", sumYear:"Първа година", sumFrom:"От",
     nav:["Услуги","Цени","Контакти"], book:"Запази час", call:"Обади се",
     secServices:"Услуги", secBook:"Свободни часове тази седмица", secRev:"Отзиви от Google",
@@ -260,9 +265,12 @@ const T = {
     note:"Includes hosting, maintenance and site changes.", cta:"Request this quote",
     perMonth:"/mo", included:"included", tld:".com", sample:"Sample preview",
     dTitle:"Your quote", cname:"Your name", ccontact:"Phone or email",
-    close:"Close", copy:"Copy quote", copied:"Quote copied. Send it to Konstantin.",
+    close:"Close", copy:"Copy quote", copied:"Quote copied.",
     copyFail:"Copy didn't work. Select the text and copy it manually.",
-    sendTo:(c)=>"Send the quote to Konstantin" + (c.email? " at " + c.email : "") + (c.phone? ", phone " + c.phone : "") + ". You'll hear back within 24 hours.",
+    send:"Send request", sending:"Sending…", sent:"Request sent. We'll get back to you within 24 hours.",
+    sendFail:(c)=>"We couldn't send it. Email us at " + c.email + " or call " + c.phoneIntl + ".",
+    need:"Add your name and a phone or email so we can reach you.",
+    sendTo:(c)=>"We'll get back to you within 24 hours. Or reach us directly: " + c.email + ", " + c.phoneIntl + ".",
     sumHead:"Website quote", sumBiz:"Business", sumNiche:"Type", sumMods:"Modules", sumOnce:"One-time", sumMonth:"Monthly", sumYear:"First year", sumFrom:"From",
     nav:["Services","Pricing","Contact"], book:"Book now", call:"Call us",
     secServices:"Services", secBook:"Open slots this week", secRev:"Google reviews",
@@ -308,7 +316,7 @@ function totals(){
 function renderStatic(){
   const t=T[state.market];
   document.documentElement.lang = state.market==="bg" ? "bg" : "en";
-  for (const [id,key] of [["t-h1","h1"],["t-lead","lead"],["brand","brand"],["t-s1","s1"],["t-s2","s2"],["t-s3","s3"],["t-name","name"],["t-color","color"],["t-once","once"],["t-month","month"],["t-year","year"],["t-note","note"],["open","cta"],["d-title","dTitle"],["t-cname","cname"],["t-ccontact","ccontact"],["close","close"],["copy","copy"]]) $(id).textContent=t[key];
+  for (const [id,key] of [["t-h1","h1"],["t-lead","lead"],["brand","brand"],["t-s1","s1"],["t-s2","s2"],["t-s3","s3"],["t-name","name"],["t-color","color"],["t-once","once"],["t-month","month"],["t-year","year"],["t-note","note"],["open","cta"],["d-title","dTitle"],["t-cname","cname"],["t-ccontact","ccontact"],["close","close"],["copy","copy"],["send","send"]]) $(id).textContent=t[key];
   $("t-other").textContent=t.otherLabel; $("other").placeholder=t.otherPh;
   $("other-wrap").hidden = state.niche!=="other";
   $("m-bg").setAttribute("aria-pressed", state.market==="bg");
@@ -372,6 +380,21 @@ $("dlg").onclick=(e)=>{ if(e.target.id==="dlg") $("dlg").classList.remove("open"
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") $("dlg").classList.remove("open"); });
 $("c-name").oninput=renderSummary; $("c-contact").oninput=renderSummary;
 $("copy").onclick=async()=>{ try{ await navigator.clipboard.writeText(summary()); $("ok").textContent=T[state.market].copied; } catch(err){ $("ok").textContent=T[state.market].copyFail; } };
+$("send").onclick=async()=>{
+  const t=T[state.market], btn=$("send");
+  const who=$("c-name").value.trim(), contact=$("c-contact").value.trim();
+  if(!who || !contact){ $("ok").textContent=t.need; return; }
+  btn.disabled=true; btn.textContent=t.sending;
+  try{
+    const r = await fetch(FORM_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({_subject:"Нова заявка от конфигуратора ("+(state.market==="bg"?"БГ":"САЩ")+"): "+($("bizname").value.trim()||nicheName()),
+        _template:"box", _captcha:"false", "Име":who, "Контакт":contact, "Пазар":state.market==="bg"?"БГ":"САЩ", "Оферта":summary()})});
+    if(!r.ok) throw new Error(r.status);
+    $("ok").textContent=t.sent; btn.textContent=t.sent.split(".")[0];
+  }catch(err){
+    $("ok").textContent=t.sendFail(CONTACT); btn.disabled=false; btn.textContent=t.send;
+  }
+};
 full();
 </script>
 </body>
