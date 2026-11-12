@@ -386,9 +386,12 @@ $("send").onclick=async()=>{
   if(!who || !contact){ $("ok").textContent=t.need; return; }
   btn.disabled=true; btn.textContent=t.sending;
   try{
-    const r = await fetch(FORM_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
-      body:JSON.stringify({_subject:"Нова заявка от конфигуратора ("+(state.market==="bg"?"БГ":"САЩ")+"): "+($("bizname").value.trim()||nicheName()),
-        _template:"box", _captcha:"false", "Име":who, "Контакт":contact, "Пазар":state.market==="bg"?"БГ":"САЩ", "Оферта":summary()})});
+    const fd = new FormData();
+    fd.append("_subject","Нова заявка от конфигуратора ("+(state.market==="bg"?"БГ":"САЩ")+"): "+($("bizname").value.trim()||nicheName()));
+    fd.append("_template","box"); fd.append("_captcha","false");
+    fd.append("name",who); fd.append("contact",contact);
+    fd.append("market",state.market==="bg"?"БГ":"САЩ"); fd.append("offer",summary());
+    const r = await fetch(FORM_URL,{method:"POST",headers:{"Accept":"application/json"},body:fd});
     if(!r.ok) throw new Error(r.status);
     $("ok").textContent=t.sent; btn.textContent=t.sent.split(".")[0];
   }catch(err){
